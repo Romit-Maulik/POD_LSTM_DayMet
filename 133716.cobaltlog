@@ -1,0 +1,26 @@
+Jobid: 133716
+qsub -n 1 -q gpu_mules -A Performance -t 5:00:00 -I
+Tue Jun 09 01:52:22 2020 +0000 (UTC) submitted with cwd set to: /home/rmaulik/DayMet/tmax_dir
+jobid 133716 submitted from terminal /dev/pts/82
+Tue Jun 09 01:52:51 2020 +0000 (UTC) 
+Tue Jun 09 01:52:51 2020 +0000 (UTC) Command: '/usr/bin/ssh' 'lucie' '/usr/libexec/cobalt/cobalt-launcher.py' '--nf' '/var/tmp/cobalt.133716' '--jobid' '133716' '--cwd' '/home/rmaulik/DayMet/tmax_dir' '--env' 'COBALT_JOBID=133716' '/bin/sleep' '18000'
+Tue Jun 09 01:52:51 2020 +0000 (UTC) 
+Tue Jun 09 01:52:51 2020 +0000 (UTC) Environment:
+Tue Jun 09 01:52:51 2020 +0000 (UTC) SHELL=/bin/bash
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_NODEFILE=/tmp/tmppIIZsu
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_PARTNAME=lucie
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_JOBID=133716
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_STARTTIME=1591667552
+Tue Jun 09 01:52:51 2020 +0000 (UTC) LOGNAME=rmaulik
+Tue Jun 09 01:52:51 2020 +0000 (UTC) USER=rmaulik
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_ENDTIME=1591685552
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_PARTSIZE=1
+Tue Jun 09 01:52:51 2020 +0000 (UTC) HOME=/home/rmaulik
+Tue Jun 09 01:52:51 2020 +0000 (UTC) COBALT_JOBSIZE=1
+Tue Jun 09 01:52:51 2020 +0000 (UTC) 
+Tue Jun 09 01:52:51 2020 +0000 (UTC) Info: stdin received from /dev/null
+Tue Jun 09 01:52:51 2020 +0000 (UTC) Info: stdout sent to /home/rmaulik/DayMet/tmax_dir/133716.output
+Tue Jun 09 01:52:51 2020 +0000 (UTC) Info: stderr sent to /home/rmaulik/DayMet/tmax_dir/133716.error
+Tue Jun 09 01:52:51 2020 +0000 (UTC) 
+Tue Jun 09 02:11:48 2020 +0000 (UTC) Info: user delete requested with signal SIGTERM by user rmaulik
+Tue Jun 09 02:12:09 2020 +0000 (UTC) Info: job is in the process of exiting; user delete request ignored

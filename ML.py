@@ -48,10 +48,6 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
     l1 = Dropout(0.1)(l1,training=False)
     l1 = Bidirectional(LSTM(50,return_sequences=True))(l1)
     l1 = Dropout(0.1)(l1,training=False)
-    l1 = Bidirectional(LSTM(50,return_sequences=True))(l1)
-    l1 = Dropout(0.1)(l1,training=False)
-    l1 = Bidirectional(LSTM(50,return_sequences=True))(l1)
-    l1 = Dropout(0.1)(l1,training=False)
     op = Dense(np.shape(states)[1], activation='linear', name='output')(l1)
     model = Model(inputs=lstm_inputs, outputs=op)
 
