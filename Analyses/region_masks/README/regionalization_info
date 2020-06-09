@@ -1,0 +1,25 @@
+NARCCAP Subregionalization #1
+ 
+Melissa Bukovsky 
+bukovsky@ucar.edu 
+March 11, 2011 
+ 
+This subregionalization was created to aid in the analysis of NARCCAP simulations in subregions of the North American domain.  It is, in essence, a simplification of the terrestrial ecoregions provided in Ricketts et al. (1999), and over the U.S. it closely follows the regions used by NEON (National Ecological Observatory Network, Kampe et al. (2010)).  Eco-regions are sensitive to variations in temperature and precipitation, and were judged to be a good proxy for areas of similar regional climatology.  Simplified eco-regions also capture important features in regional climate; e.g. the Prairie region captures the U.S. secondary summertime precipitation maximum, and the DeepSouth region captures the eastern U.S. wintertime precipitation maximum.  Other climate classifications were also referenced in the creation of this subregionalization (e.g. the Thornthwaite (1984) and Koppen (1900) classifications), but they were generally too complex in western North America, and to simplistic in eastern North America.  Simplification of the regions was necessary for ease of analysis, but is also justified based on the resolution of the NARCCAP simulations (50-km).   Not all regions are fully based on eco-zones.  The Great Lakes region, for one, was shaped to cover most of the appropriate watershed, and the Southwest, to capture the area of immediate influence by the North American Monsoon.  
+ 
+Ocean regions are based on Spalding et al. (2007), with some simplification.  For instance, the small area of Tropical Northwestern Atlantic waters was combined with the Warm (Temperate) NW Atlantic region.  Regions are also extended out to the domain boundaries.   
+ 
+This regionalization was done on a common 1/2 x 1/2 degree lat/lon grid.  Some of the regions overhang coastline because of the resolution.  A grid box with any percentage of land in it greater than zero was generally included in a terrestrial region.  In others, fully resolvable water regions (e.g. the Gulf of California) were included with terrestrial regions to group together important climatological processes.   
+ 
+Out of the 29 regions created in the NARCCAP domain, 13 (initial) groupings have also been created for analysis over larger sub-regions with similar characteristics.   
+ 
+ 
+ 
+Kampe, T.U., B.R. Johnson, M. Kuester, M. Keller, 2010.  NEON: the first continental-scale ecological observatory with airborne remote sensing of vegetation canopy biochemistry and structure.  J. Appl. Remote Sensing, 4, 043510.  
+ 
+Koppen, W., 1900: Versuch einer Klassifikation der Klimate, Vorzugsweise nach ihren Beziehungen zur Pflanzenwelt [Attempted climate classification in relation to plant distributions].  Geographische Zeitschrift, 6, 593-611, 657-679.   
+ 
+Ricketts, T.H., and coauthors, 1999. Terrestrial ecoregions of North America: A conservation assessment. Island Press, Washington, DC, 485p. 
+ 
+Spalding, M.D., H.E. Fox, G.R. Allen, N. Davidson, Z.Z. Ferdana, M. Finlayson, B.S. Halpern, M.A. Jorge, A. Lomvana, S.A. Lourie, K.D. Martin, E. McManus, J. Molnar, C.A. Recchia, and J. Robertson, 2007.  Marine ecoregions of the world: A bioregionalization of coastal and shelf areas.  Bioscience, 57, 573-583.   
+ 
+Thornthwaite, C.W., 1984. An approach toward a rational classification of climate. The Geographical Review, 38, 55-94.   
