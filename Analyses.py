@@ -31,18 +31,18 @@ def visualize_predictions(cf_pred,cf_true,sm,phi,mode):
     plt.legend()
     plt.title('Forecast ' + mode)
     plt.tight_layout()
-    plt.savefig('./Visualization/Coefficients/Coefficients_'+mode+'.png')
+    plt.savefig('./Visualization/'+str(geo_data)+'/Coefficients/Coefficients_'+mode+'_'+str(geo_data)+'.png')
     plt.close()
 
     if field_viz:
         if mode == 'train':
-            tmax = np.load('./Data/Daymet_total.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+            tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
         elif mode == 'valid':
-            tmax = np.load('./Data/Daymet_total.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+            tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
         elif mode == 'test':
-            tmax = np.load('./Data/Daymet_total.npy',allow_pickle=True)[15*365:] # 2016-
+            tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
    
-        mask = np.load('./Data/mask.npy')
+        mask = np.load('./Data/mask_'+str(geo_data)+'.npy')
         dim_0 = np.shape(tmax)[0]
         dim_1 = np.shape(tmax)[1]
         dim_2 = np.shape(tmax)[2]
@@ -79,7 +79,7 @@ def visualize_predictions(cf_pred,cf_true,sm,phi,mode):
             fig.colorbar(cx, ax = ax[1],fraction=0.046, pad=0.04)
             fig.colorbar(cx, ax = ax[2],fraction=0.046, pad=0.04)
             plt.tight_layout()
-            plt.savefig('./Visualization/Contours/Plot_'+mode+'_'+"{0:0>4}".format(pnum)+'.png')
+            plt.savefig('./Visualization/'+str(geo_data)+'/Contours/Plot_'+mode+'_'+"{0:0>4}".format(pnum)+'.png')
             pnum = pnum + 1
             plt.close()
 
@@ -92,13 +92,13 @@ def visualize_predictions(cf_pred,cf_true,sm,phi,mode):
 def analyze_predictions(cf_pred,cf_true,sm,phi,mode):
 
     if mode == 'train':
-        tmax = np.load('./Data/Daymet_total.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+        tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
     elif mode == 'valid':
-        tmax = np.load('./Data/Daymet_total.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+        tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
     elif mode == 'test':
-        tmax = np.load('./Data/Daymet_total.npy',allow_pickle=True)[15*365:] # 2016-
+        tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
 
-    mask = np.load('./Data/mask.npy')
+    mask = np.load('./Data/mask_'+str(geo_data)+'.npy')
     dim_0 = np.shape(tmax)[0]
     dim_1 = np.shape(tmax)[1]
     dim_2 = np.shape(tmax)[2]
@@ -167,7 +167,7 @@ def analyze_predictions(cf_pred,cf_true,sm,phi,mode):
                     plt.hist(pred_data[day],bins=np.arange(min(true_data[day]), max(true_data[day]) + binwidth, binwidth),label='Predicted',alpha=0.5)
                     plt.legend()
                     plt.xlim((-50,60))
-                    plt.savefig('./Analyses/pdfs/'+region_name+'_'+str(day)+'.png')
+                    plt.savefig('./Analyses/'+str(geo_data)+'/pdfs/'+region_name+'_'+str(day)+'.png')
                     plt.close()
 
             # 7-day biases of regions
@@ -198,17 +198,17 @@ def analyze_predictions(cf_pred,cf_true,sm,phi,mode):
             plt.figure()
             plt.plot(np.arange(len(bias_vals)),bias_vals,'o')
             plt.xlabel('Week')
-            plt.ylabel('Bias in celsius')
-            plt.savefig('./Analyses/biases/Bias_'+region_name+'.png')
+            plt.ylabel('Bias')
+            plt.savefig('./Analyses/'+str(geo_data)+'/biases/Bias_'+region_name+'.png')
             plt.close()
 
             plt.figure()
             plt.plot(np.arange(len(true_ave_temp_vals)),true_ave_temp_vals,'o',label='True')
             plt.plot(np.arange(len(pred_ave_temp_vals)),pred_ave_temp_vals,'o',label='Predicted')
             plt.xlabel('Week')
-            plt.ylabel('Weekly average temperatures')
+            plt.ylabel('Weekly average forecasts')
             plt.legend()
-            plt.savefig('./Analyses/biases/Temperature_'+region_name+'.png')
+            plt.savefig('./Analyses/'+str(geo_data)+'/biases/Forecasts_'+region_name+'.png')
             plt.close()
 
 
@@ -223,9 +223,9 @@ def import_subregions():
     files = os.listdir('./Analyses/region_masks')
 
     # Load the full field
-    lat_full = np.load('./Data/daymet_v3_tmax_2015_na_lat.npy')
-    lon_full = np.load('./Data/daymet_v3_tmax_2015_na_lon.npy')
-    data_full = np.load('./Data/daymet_v3_tmax_2014_na_tmax.npy')
+    lat_full = np.load('./Data/lat.npy')
+    lon_full = np.load('./Data/lon.npy')
+    data_full = np.load('./Data/Daymet_total_tmax.npy')[0:365]
 
     data_full[data_full>-1000] = 100.0
 

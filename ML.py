@@ -54,7 +54,7 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
     # design network
     my_adam = optimizers.Adam(lr=0.0005, decay=0.0)
 
-    filepath = "./Training/best_weights_lstm.h5"
+    filepath = "./Training/best_weights_"+str(geo_data)+".h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
     earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=100, verbose=1, mode='auto', baseline=None, restore_best_weights=False)
     callbacks_list = [checkpoint,earlystopping]
@@ -71,8 +71,8 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
                                 callbacks=callbacks_list, \
                                 validation_data=(input_seq_v, output_seq_v))
         
-        np.save('./Training/Train_Loss.npy',train_history.history['loss'])
-        np.save('./Training/Val_Loss.npy',train_history.history['val_loss'])
+        np.save('./Training/Train_Loss_'+str(geo_data)+'.npy',train_history.history['loss'])
+        np.save('./Training/Val_Loss_'+str(geo_data)+'.npy',train_history.history['val_loss'])
 
     model.load_weights(filepath)
 

@@ -1,9 +1,9 @@
 import argparse
 parser = argparse.ArgumentParser()
+parser.add_argument("--data",help="Data sets to use ['tmax', 'prcp']",type=str)
 parser.add_argument("--modes",help="Number of POD modes to retain (always needed)",type=int)
 parser.add_argument("--train",help="Train LSTM",action='store_true')
 parser.add_argument('--pod', help="Run a POD on the data", action='store_true')
-parser.add_argument('--filter', help="Lowess filter coefficients", action='store_true')
 parser.add_argument('--viz', help="Visualize reconstruction", action='store_true')
 parser.add_argument("--epochs",help="Number of epochs for training",type=int)
 parser.add_argument("--win",help="Length of forecast window (always needed)",type=int)
@@ -13,6 +13,9 @@ args = parser.parse_args()
 # Import and tweak configuration
 import Config
 
+# Dataset
+if args.data is not None:
+    Config.geo_data = args.data
 # Number of modes
 if args.modes is not None:
     Config.num_modes = args.modes
@@ -32,8 +35,6 @@ Config.train_mode = args.train # test or train
 Config.field_viz = args.viz
 # Perform POD?
 Config.perform_pod = args.pod
-# Filter the coefficients
-Config.perform_lowess = args.filter
 
 # Import the configuration finally
 from Config import *
@@ -115,17 +116,17 @@ if __name__ == "__main__":
         # Train
         cf = np.transpose(preproc_input.inverse_transform(np.transpose(cf)))
         lstm = np.transpose(preproc_input.inverse_transform(np.transpose(lstm)))
-        np.save('./Coefficients/Prediction_train.npy',lstm)
+        np.save('./Coefficients/Prediction_train_'+str(geo_data)+'.npy',lstm)
 
         # Valid
         cf_v = np.transpose(preproc_input.inverse_transform(np.transpose(cf_v)))
         lstm_v = np.transpose(preproc_input.inverse_transform(np.transpose(lstm_v)))
-        np.save('./Coefficients/Prediction_valid.npy',lstm_v)
+        np.save('./Coefficients/Prediction_valid_'+str(geo_data)+'.npy',lstm_v)
 
         # Test
         cf_t = np.transpose(preproc_input.inverse_transform(np.transpose(cf_t)))
         lstm_t = np.transpose(preproc_input.inverse_transform(np.transpose(lstm_t)))
-        np.save('./Coefficients/Prediction_test.npy',lstm_t)
+        np.save('./Coefficients/Prediction_test_'+str(geo_data)+'.npy',lstm_t)
 
         # Visualize train
         visualize_predictions(lstm,cf,smean,phi,'train')

@@ -1,2 +1,5 @@
 *.npy
 *.nc
+*.error
+*.output
+*.cobaltlog
