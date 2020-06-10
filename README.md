@@ -17,4 +17,4 @@ POD-based daytime max temperature emulator for NASA DayMet data
 # Sample histogram and bias analyses (seven-day averages)
 ![Histograms - Central North America](https://github.com/Romit-Maulik/POD_LSTM_DayMet/blob/master/Analyses/tmax/pdfs/Central_180.png "Histograms on day 180 of 2016 (test)")
 
-![Average forecasts - Central North America](https://github.com/Romit-Maulik/POD_LSTM_DayMet/blob/master/Analyses/tmax/biases/Forecast_Central.png "Test forecast of temperature central NA")
+![Average forecasts - Central North America](https://github.com/Romit-Maulik/POD_LSTM_DayMet/blob/master/Analyses/tmax/biases/Forecasts_Central.png "Test forecast of temperature central NA")
