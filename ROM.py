@@ -128,10 +128,10 @@ if __name__ == "__main__":
         lstm_t = np.transpose(preproc_input.inverse_transform(np.transpose(lstm_t)))
         np.save('./Coefficients/Prediction_test_'+str(geo_data)+'.npy',lstm_t)
 
-        # Visualize train
-        visualize_predictions(lstm,cf,smean,phi,'train')
-        # Visualize valid
-        visualize_predictions(lstm_v,cf_v,smean,phi,'valid')
+        # # Visualize train
+        # visualize_predictions(lstm,cf,smean,phi,'train')
+        # # Visualize valid
+        # visualize_predictions(lstm_v,cf_v,smean,phi,'valid')
         
         # Visualize and analyze test
         visualize_predictions(lstm_t,cf_t,smean,phi,'test')

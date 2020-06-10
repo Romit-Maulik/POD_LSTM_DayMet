@@ -14,14 +14,25 @@ def load_snapshots_pod():
 
     if geo_data == 'tmax':
         fname = './Data/Daymet_total_tmax.npy'
-    elif geo_data == 'prcp':
+
+        data_total = np.load(fname)
+        data_train = data_total[0*365:11*365] # 2000-2010
+        data_valid = data_total[11*365:15*365] # 2011-2014
+        data_test = data_total[15*365:] # 2016
+    
+    elif geo_data == 'prcp': # Some data missing in between
         fname = './Data/Daymet_total_prcp.npy'
 
-    data_total = np.load(fname)
-    data_train = data_total[0*365:11*365] # 2000-2010
-    data_valid = data_total[11*365:15*365] # 2011-2014
-    data_test = data_total[15*365:] # 2016
+        data_total = np.load(fname)
+        num_snapshots = np.shape(data_total)[0]
+        num_train = int(num_snapshots*0.7)
+        num_valid = int(num_snapshots*0.15)
 
+        data_train = data_total[0:num_train] 
+        data_valid = data_total[num_train:num_train+num_valid]
+        data_test = data_total[num_train+num_valid:] 
+
+    
     for i in range(np.shape(data_train)[0]):
         data_train[i] = gaussian_filter(data_train[i],sigma=1)
 

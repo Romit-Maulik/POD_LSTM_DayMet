@@ -35,44 +35,62 @@ def visualize_predictions(cf_pred,cf_true,sm,phi,mode):
     plt.close()
 
     if field_viz:
-        if mode == 'train':
-            tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
-        elif mode == 'valid':
-            tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
-        elif mode == 'test':
-            tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
+
+        if geo_data == 'tmax':
+            
+            if mode == 'train':
+                snapshots = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+            elif mode == 'valid':
+                snapshots = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+            elif mode == 'test':
+                snapshots = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
+        
+        elif geo_data == 'prcp':
+            
+            data_total = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)
+            num_snapshots = np.shape(data_total)[0]
+            num_train = int(num_snapshots*0.7)
+            num_valid = int(num_snapshots*0.15)          
+
+            if mode == 'train':
+                snapshots = data_total[0:num_train] 
+            elif mode == 'valid':
+                snapshots = data_total[num_train:num_train+num_valid]
+            elif mode == 'test':
+                snapshots = data_total[num_train+num_valid:]    
+
    
         mask = np.load('./Data/mask_'+str(geo_data)+'.npy')
-        dim_0 = np.shape(tmax)[0]
-        dim_1 = np.shape(tmax)[1]
-        dim_2 = np.shape(tmax)[2]
+        dim_0 = np.shape(snapshots)[0]
+        dim_1 = np.shape(snapshots)[1]
+        dim_2 = np.shape(snapshots)[2]
 
-        tmax = tmax.reshape(dim_0,dim_1*dim_2)
+        snapshots = snapshots.reshape(dim_0,dim_1*dim_2)
 
         # Reconstruct
         prediction = sm+np.transpose(np.matmul(phi,cf_pred))
         true_pod = sm+np.transpose(np.matmul(phi,cf_true))
 
-        tmax_pod = np.copy(tmax)
-        tmax_pred = np.copy(tmax)
+        snapshots_pod = np.copy(snapshots)
+        snapshots_pred = np.copy(snapshots)
 
-        tmax_pod[:,mask] = true_pod[:,:]
-        tmax_pred[:,mask] = prediction[:,:]
+        snapshots_pod[:,mask] = true_pod[:,:]
+        snapshots_pred[:,mask] = prediction[:,:]
 
-        tmax = tmax.reshape(dim_0,dim_1,dim_2)
-        tmax_pod = tmax_pod.reshape(dim_0,dim_1,dim_2)
-        tmax_pred = tmax_pred.reshape(dim_0,dim_1,dim_2)
+        snapshots = snapshots.reshape(dim_0,dim_1,dim_2)
+        snapshots_pod = snapshots_pod.reshape(dim_0,dim_1,dim_2)
+        snapshots_pred = snapshots_pred.reshape(dim_0,dim_1,dim_2)
 
         pnum = 0
         for t in range(window_len,dim_0,30):
             fig, ax = plt.subplots(nrows=3,ncols=1,figsize=(6,12))
-            cx = ax[0].imshow(tmax[t,:,:],vmin=-20,vmax=40)#sst_pod_lstm
+            cx = ax[0].imshow(snapshots[t,:,:],vmin=-20,vmax=40)#sst_pod_lstm
             ax[0].set_title('True')
 
-            ax[1].imshow(tmax_pod[t,:,:],vmin=-20,vmax=40)#sst_pod_lstm
+            ax[1].imshow(snapshots_pod[t,:,:],vmin=-20,vmax=40)#sst_pod_lstm
             ax[1].set_title('Projected true')
 
-            ax[2].imshow(tmax_pred[t,:,:],vmin=-20,vmax=40)#sst_pod_lstm
+            ax[2].imshow(snapshots_pred[t,:,:],vmin=-20,vmax=40)#sst_pod_lstm
             ax[2].set_title('Predicted')
 
             fig.colorbar(cx, ax = ax[0],fraction=0.046, pad=0.04)
@@ -91,33 +109,49 @@ def visualize_predictions(cf_pred,cf_true,sm,phi,mode):
 #-------------------------------------------------------------------------------------------------
 def analyze_predictions(cf_pred,cf_true,sm,phi,mode):
 
-    if mode == 'train':
-        tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
-    elif mode == 'valid':
-        tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
-    elif mode == 'test':
-        tmax = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
+    if geo_data == 'tmax':
+        
+        if mode == 'train':
+            snapshots = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+        elif mode == 'valid':
+            snapshots = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+        elif mode == 'test':
+            snapshots = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
+    
+    elif geo_data == 'prcp':
+        
+        data_total = np.load('./Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)
+        num_snapshots = np.shape(data_total)[0]
+        num_train = int(num_snapshots*0.7)
+        num_valid = int(num_snapshots*0.15)          
+
+        if mode == 'train':
+            snapshots = data_total[0:num_train] 
+        elif mode == 'valid':
+            snapshots = data_total[num_train:num_train+num_valid]
+        elif mode == 'test':
+            snapshots = data_total[num_train+num_valid:]    
 
     mask = np.load('./Data/mask_'+str(geo_data)+'.npy')
-    dim_0 = np.shape(tmax)[0]
-    dim_1 = np.shape(tmax)[1]
-    dim_2 = np.shape(tmax)[2]
+    dim_0 = np.shape(snapshots)[0]
+    dim_1 = np.shape(snapshots)[1]
+    dim_2 = np.shape(snapshots)[2]
 
-    tmax = tmax.reshape(dim_0,dim_1*dim_2)
+    snapshots = snapshots.reshape(dim_0,dim_1*dim_2)
 
     # Reconstruct
     prediction = sm+np.transpose(np.matmul(phi,cf_pred))
     true_pod = sm+np.transpose(np.matmul(phi,cf_true))
 
-    tmax_pod = np.copy(tmax)
-    tmax_pred = np.copy(tmax)
+    snapshots_pod = np.copy(snapshots)
+    snapshots_pred = np.copy(snapshots)
 
-    tmax_pod[:,mask] = true_pod[:,:]
-    tmax_pred[:,mask] = prediction[:,:]
+    snapshots_pod[:,mask] = true_pod[:,:]
+    snapshots_pred[:,mask] = prediction[:,:]
 
-    tmax = tmax.reshape(dim_0,dim_1,dim_2)
-    tmax_pod = tmax_pod.reshape(dim_0,dim_1,dim_2)
-    tmax_pred = tmax_pred.reshape(dim_0,dim_1,dim_2)
+    snapshots = snapshots.reshape(dim_0,dim_1,dim_2)
+    snapshots_pod = snapshots_pod.reshape(dim_0,dim_1,dim_2)
+    snapshots_pred = snapshots_pred.reshape(dim_0,dim_1,dim_2)
 
     # import subregions
     import os
@@ -132,24 +166,24 @@ def analyze_predictions(cf_pred,cf_true,sm,phi,mode):
             region_mask = np.load('./Analyses/region_masks/'+str(region_name)+'_mask.npy')
             # Get data points
             true_data_list = []
-            for i in range(np.shape(tmax)[0]):
-                region_temps = tmax[i][region_mask]
+            for i in range(np.shape(snapshots)[0]):
+                region_temps = snapshots[i][region_mask]
                 region_temps = region_temps[region_temps>-150]
                 true_data_list.append(region_temps)
             true_data = np.asarray(true_data_list)
 
             # Get data points
             pod_data_list = []
-            for i in range(np.shape(tmax)[0]):
-                region_temps = tmax_pod[i][region_mask]
+            for i in range(np.shape(snapshots)[0]):
+                region_temps = snapshots_pod[i][region_mask]
                 region_temps = region_temps[region_temps>-150]
                 pod_data_list.append(region_temps)
             pod_data = np.asarray(pod_data_list)
 
             # Get data points
             pred_data_list = []
-            for i in range(np.shape(tmax)[0]):
-                region_temps = tmax_pred[i][region_mask]
+            for i in range(np.shape(snapshots)[0]):
+                region_temps = snapshots_pred[i][region_mask]
                 region_temps = region_temps[region_temps>-150]
                 pred_data_list.append(region_temps)
             pred_data = np.asarray(pred_data_list)
