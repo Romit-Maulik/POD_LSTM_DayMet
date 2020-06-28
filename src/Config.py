@@ -23,7 +23,7 @@ space_train_mode = False
 time_train_mode = False
 
 # Batchsize
-batchsize_space = 4 # CAE
+batchsize_space = 1 # CAE
 batchsize_time = 64 # LSTM
 
 # For POD

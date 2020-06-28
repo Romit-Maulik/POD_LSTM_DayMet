@@ -19,7 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 import matplotlib.pyplot as plt
-
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
@@ -32,9 +32,9 @@ def load_snapshots_cae():
         fname = '../Data/Daymet_total_tmax.npy'
 
         data_total = np.load(fname)
-        data_train = data_total[0*365:11*365:2] # 2000-2010
-        data_valid = data_total[11*365:15*365:2] # 2011-2014
-        data_test = data_total[15*365::2] # 2016
+        data_train = data_total[0*365:11*365:4] # 2000-2010
+        data_valid = data_total[11*365:15*365:4] # 2011-2014
+        data_test = data_total[15*365::4] # 2016
     
     elif geo_data == 'prcp': # Some data missing in between
         fname = '../Data/Daymet_total_prcp.npy'
@@ -84,6 +84,10 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     idx_train = np.arange(np.shape(zero_pad_train)[0])
     np.random.shuffle(idx_train)
     zero_pad_train = zero_pad_train[idx_train]
+
+    # Just keeping a few aside for validation - due to memory limitations
+    zero_pad_valid = np.copy(zero_pad_train[-10:])
+    zero_pad_train = np.copy(zero_pad_train[:-10])
     
     idx_test = np.arange(np.shape(zero_pad_test)[0])
     np.random.shuffle(idx_test)
@@ -93,16 +97,16 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     #np.random.shuffle(zero_pad_train_shuffled)
     #np.random.shuffle(zero_pad_test_shuffled)
 
-    train_valid_dataset = tf.data.Dataset.from_tensor_slices((zero_pad_train, zero_pad_train))
-    train_dataset = train_valid_dataset.take(len(idx_train))
-    valid_dataset = train_valid_dataset.skip(len(idx_train))
+    #train_valid_dataset = tf.data.Dataset.from_tensor_slices((zero_pad_train, zero_pad_train))
+    #train_dataset = train_valid_dataset.take(len(idx_train))
+    #valid_dataset = train_valid_dataset.skip(len(idx_train))
    
     # CNN training stuff
     weights_filepath = "../CAE_Training/cae_best_weights_"+str(geo_data)+".h5"
     lrate = 0.001
 
     ## Encoder
-    encoder_inputs = Input(shape=(896,896,1),batch_size=batchsize_space,name='Field')
+    encoder_inputs = Input(shape=(896,896,1),name='Field')
     # Encode   
     x = Conv2D(30,kernel_size=(3,3),activation='relu',padding='same')(encoder_inputs)
     enc_l2 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
@@ -174,12 +178,16 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
 
     # fit network
     if train_mode:
-        train_history = model.fit(x=train_dataset, epochs=num_epochs, callbacks=callbacks_list, validation_data=validation_dataset)
+        train_history = model.fit(x=zero_pad_train, y=zero_pad_train,epochs=num_epochs, callbacks=callbacks_list, batch_size=batchsize_space,\
+                                 validation_data=(zero_pad_valid,zero_pad_valid))
 
         model.load_weights(weights_filepath)
 
         idx_train = sorted(range(len(idx_train)), key=lambda k: idx_train[k])
         idx_test = sorted(range(len(idx_test)), key=lambda k: idx_test[k])
+
+        # Rejoin train and valid
+        zero_pad_train = np.concatenate((zero_pad_train,zero_pad_valid),axis=0)
 
         zero_pad_train = zero_pad_train[idx_train]
         zero_pad_test = zero_pad_test[idx_test]
@@ -208,15 +216,18 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
 
         # Encode the training data to generate time-series information
         encoded_list = []
-        encoded_train = K.eval(encoder(zero_pad_train[:,:,:,:].astype('float32')))
-        encoded_train = encoded_train.reshape(np.shape(zero_pad_train)[0],14)
-        np.save("../Latent_Space/CAE_Coefficients_Train_"+str(geo_data)+".h5",encoded_train)
+        for i in range(np.shape(zero_pad_train)[0]):
+            temp = K.eval(encoder(zero_pad_train[i:i+1].astype('float32')))
+            encoded_list.append(temp.flatten())
+        encoded_train = np.asarray(encoded_list)
+        np.save("../Latent_Space/CAE_Coefficients_Train_"+str(geo_data)+".npy",encoded_train)
 
         encoded_list = []
-        encoded_test = K.eval(encoder(zero_pad_test[:,:,:,:].astype('float32')))
-        encoded_test = encoded_test.reshape(np.shape(zero_pad_test)[0],14)
-        np.save("../Latent_Space/CAE_Coefficients_Test_"+str(geo_data)+".h5",encoded_test)
-
+        for i in range(np.shape(zero_pad_test)[0]):
+            temp = K.eval(encoder(zero_pad_test[i:i+1].astype('float32')))
+            encoded_list.append(temp.flatten())
+        encoded_test = np.asarray(encoded_list)
+        np.save("../Latent_Space/CAE_Coefficients_Test_"+str(geo_data)+".npy",encoded_test)
 
     model.load_weights(weights_filepath)
 
