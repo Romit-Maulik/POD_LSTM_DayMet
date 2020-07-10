@@ -17,6 +17,8 @@ parser.add_argument("--pod_modes",help="Number of modes to retain (if POD)",type
 parser.add_argument("--viz", help="Visualize reconstruction", action='store_true')
 parser.add_argument("--win",help="Length of forecast window (always needed)",type=int)
 
+parser.add_argument("--use_hvd",help="Use horovod (only with CAE now)",action='store_true')
+
 args = parser.parse_args()
 
 # Import and tweak configuration
@@ -29,6 +31,8 @@ if args.comp is not None:
     Config.compression = args.comp
 if args.train_mode is not None:
     Config.train_mode = args.train_mode
+if args.use_hvd is not None:
+    Config.use_hvd = args.use_hvd
 
 # Deployment modes
 if args.train_space is not None:
@@ -89,6 +93,16 @@ preproc_input = Pipeline([('minmaxscaler', MinMaxScaler())])
 #-------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
 
+    if args.use_hvd:
+        import horovod.tensorflow.keras as hvd
+        hvd.init()
+        # Horovod: pin GPU to be used to process local rank (one GPU per process)
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        if gpus:
+            tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
+
     if train_mode:
 
         if compression == 'pod':
@@ -116,7 +130,7 @@ if __name__ == "__main__":
                 # Snapshot collection
                 zero_pad_train, zero_pad_test, preproc, dim_1, dim_2 = load_snapshots_cae() 
                 # Train CAE
-                generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, space_train_mode)
+                generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, space_train_mode,args.use_hvd)
                 cf, cf_t = load_coefficients_cae()
             else:
                 cf, cf_t = load_coefficients_cae()

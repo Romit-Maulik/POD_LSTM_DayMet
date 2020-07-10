@@ -1,7 +1,7 @@
 from Config import *
 import numpy as np
 import matplotlib.pyplot as plt
-from netCDF4 import Dataset  # http://code.google.com/p/netcdf4-python/
+#from netCDF4 import Dataset  # http://code.google.com/p/netcdf4-python/
 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------

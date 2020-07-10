@@ -19,7 +19,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 import matplotlib.pyplot as plt
-from statsmodels.nonparametric.smoothers_lowess import lowess
+#from statsmodels.nonparametric.smoothers_lowess import lowess
+import horovod.tensorflow.keras as hvd
 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
@@ -32,9 +33,9 @@ def load_snapshots_cae():
         fname = '../Data/Daymet_total_tmax.npy'
 
         data_total = np.load(fname)
-        data_train = data_total[0*365:11*365:4] # 2000-2010
-        data_valid = data_total[11*365:15*365:4] # 2011-2014
-        data_test = data_total[15*365::4] # 2016
+        data_train = data_total[0*365:11*365] # 2000-2010
+        data_valid = data_total[11*365:15*365] # 2011-2014
+        data_test = data_total[15*365:] # 2016
     
     elif geo_data == 'prcp': # Some data missing in between
         fname = '../Data/Daymet_total_prcp.npy'
@@ -65,48 +66,18 @@ def load_snapshots_cae():
     data_test = data_test.reshape(num_test,dim_1,dim_2,1)
 
     # Pad zeros
-    zero_pad_train = np.zeros(shape=(num_train,896,896,1))
-    zero_pad_train[:,448-404:448+404,448-391:448+391,0] = data_train[:,:,:,0]
+    zero_pad_train = np.zeros(shape=(num_train,1024,1024,1))
+    zero_pad_train[:,512-404:512+404,512-391:512+391,0] = data_train[:,:,:,0]
 
-    zero_pad_test = np.zeros(shape=(num_test,896,896,1))
-    zero_pad_test[:,448-404:448+404,448-391:448+391,0] = data_test[:,:,:,0]
+    zero_pad_test = np.zeros(shape=(num_test,1024,1024,1))
+    zero_pad_test[:,512-404:512+404,512-391:512+391,0] = data_test[:,:,:,0]
 
     return zero_pad_train, zero_pad_test, preproc, dim_1, dim_2
 
 
-#-------------------------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------------------------
-# Generate CAE encoding
-#-------------------------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------------------------
-def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mode):
-    # Shuffle
-    idx_train = np.arange(np.shape(zero_pad_train)[0])
-    np.random.shuffle(idx_train)
-    zero_pad_train = zero_pad_train[idx_train]
-
-    # Just keeping a few aside for validation - due to memory limitations
-    zero_pad_valid = np.copy(zero_pad_train[-10:])
-    zero_pad_train = np.copy(zero_pad_train[:-10])
-    
-    idx_test = np.arange(np.shape(zero_pad_test)[0])
-    np.random.shuffle(idx_test)
-    zero_pad_test = zero_pad_test[idx_test]
-    #zero_pad_train_shuffled = np.copy(zero_pad_train)
-    #zero_pad_test_shuffled = np.copy(zero_pad_test)
-    #np.random.shuffle(zero_pad_train_shuffled)
-    #np.random.shuffle(zero_pad_test_shuffled)
-
-    #train_valid_dataset = tf.data.Dataset.from_tensor_slices((zero_pad_train, zero_pad_train))
-    #train_dataset = train_valid_dataset.take(len(idx_train))
-    #valid_dataset = train_valid_dataset.skip(len(idx_train))
-   
-    # CNN training stuff
-    weights_filepath = "../CAE_Training/cae_best_weights_"+str(geo_data)+".h5"
-    lrate = 0.001
-
+def cae_model():
     ## Encoder
-    encoder_inputs = Input(shape=(896,896,1),name='Field')
+    encoder_inputs = Input(shape=(1024,1024,1),name='Field')
     # Encode   
     x = Conv2D(30,kernel_size=(3,3),activation='relu',padding='same')(encoder_inputs)
     enc_l2 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
@@ -126,92 +97,183 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     x = Conv2D(5,kernel_size=(3,3),activation=None,padding='same')(enc_l6)
     enc_l7 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
-    x = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(enc_l7)
+    x = Conv2D(3,kernel_size=(3,3),activation=None,padding='same')(enc_l7)
+    enc_l8 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
+
+    x = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(enc_l8)
     encoded = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
     encoder = Model(inputs=encoder_inputs,outputs=encoded)
 
     ## Decoder
-    decoder_inputs = Input(shape=(7,7,1),name='decoded')
+    decoder_inputs = Input(shape=(4,4,1),name='decoded')
 
-    x = Conv2D(2,kernel_size=(3,3),activation=None,padding='same')(decoder_inputs)
+    x = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(decoder_inputs)
     dec_l1 = UpSampling2D(size=(2, 2))(x)
 
-    x = Conv2D(5,kernel_size=(3,3),activation='relu',padding='same')(dec_l1)
+    x = Conv2D(3,kernel_size=(3,3),activation='relu',padding='same')(dec_l1)
     dec_l2 = UpSampling2D(size=(2, 2))(x)
 
-    x = Conv2D(10,kernel_size=(3,3),activation='relu',padding='same')(dec_l2)
+    x = Conv2D(5,kernel_size=(3,3),activation='relu',padding='same')(dec_l2)
     dec_l3 = UpSampling2D(size=(2, 2))(x)
 
-    x = Conv2D(15,kernel_size=(3,3),activation='relu',padding='same')(dec_l3)
+    x = Conv2D(10,kernel_size=(3,3),activation='relu',padding='same')(dec_l3)
     dec_l4 = UpSampling2D(size=(2, 2))(x)
 
-    x = Conv2D(20,kernel_size=(3,3),activation='relu',padding='same')(dec_l4)
+    x = Conv2D(15,kernel_size=(3,3),activation='relu',padding='same')(dec_l4)
     dec_l5 = UpSampling2D(size=(2, 2))(x)
 
-    x = Conv2D(25,kernel_size=(3,3),activation='relu',padding='same')(dec_l5)
+    x = Conv2D(20,kernel_size=(3,3),activation='relu',padding='same')(dec_l5)
     dec_l6 = UpSampling2D(size=(2, 2))(x)
 
-    x = Conv2D(30,kernel_size=(3,3),activation='relu',padding='same')(dec_l6)
+    x = Conv2D(25,kernel_size=(3,3),activation='relu',padding='same')(dec_l6)
     dec_l7 = UpSampling2D(size=(2, 2))(x)
 
-    decoded = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(dec_l7)
+    x = Conv2D(30,kernel_size=(3,3),activation='relu',padding='same')(dec_l7)
+    dec_l8 = UpSampling2D(size=(2, 2))(x)
+
+    decoded = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(dec_l8)
     decoder = Model(inputs=decoder_inputs,outputs=decoded)
 
-    
     ## Autoencoder
     ae_outputs = decoder(encoder(encoder_inputs)) 
     model = Model(inputs=encoder_inputs,outputs=ae_outputs,name='CAE')
 
+    return model, encoder
+
+#-------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------
+# Generate CAE encoding
+#-------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------
+def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mode, hvd_mode=False):
+    # Shuffle
+    idx_train = np.arange(np.shape(zero_pad_train)[0])
+    np.random.shuffle(idx_train)
+    zero_pad_train = zero_pad_train[idx_train]
+
+    # Just keeping a few aside for validation - due to memory limitations
+    zero_pad_valid = np.copy(zero_pad_train[-5:])
+    zero_pad_train = np.copy(zero_pad_train[:-5])
+    
+    idx_test = np.arange(np.shape(zero_pad_test)[0])
+    np.random.shuffle(idx_test)
+    zero_pad_test = zero_pad_test[idx_test]
+
+    # CNN training stuff
+    weights_filepath = "../CAE_Training/cae_best_weights_"+str(geo_data)+".h5"
+    lrate = 0.001
+
+    # Get CAE model
+    model,encoder = cae_model()
+
     # design network
     my_adam = optimizers.Adam(lr=lrate, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
 
-    checkpoint = ModelCheckpoint(weights_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
-    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto', baseline=None, restore_best_weights=False)
-    callbacks_list = [checkpoint,earlystopping]
+    if hvd_mode:
+        my_adam = hvd.DistributedOptimizer(my_adam)
 
-    model.compile(optimizer=my_adam,loss='mean_squared_error',metrics=[coeff_determination])    
+    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto', baseline=None, restore_best_weights=False)    
+    callbacks_list = [earlystopping]
+
+    if hvd_mode:
+        callbacks = [
+        # Horovod: broadcast initial variable states from rank 0 to all other processes.
+        # This is necessary to ensure consistent initialization of all workers when
+        # training is started with random weights or restored from a checkpoint.
+        hvd.callbacks.BroadcastGlobalVariablesCallback(0),
+
+        # Horovod: average metrics among workers at the end of every epoch.
+        #
+        # Note: This callback must be in the list before the ReduceLROnPlateau,
+        # TensorBoard or other metrics-based callbacks.
+        hvd.callbacks.MetricAverageCallback(),
+
+        # Horovod: using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
+        # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
+        # the first three epochs. See https://arxiv.org/abs/1706.02677 for details.
+        hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=3, verbose=1),
+        ]
+
+        # Horovod: save checkpoints only on worker 0 to prevent other workers from corrupting them.
+        if hvd.rank() == 0:
+            callbacks_list = callbacks + callbacks_list
+            checkpoint = ModelCheckpoint(weights_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
+            callbacks_list.append(checkpoint)
+
+        # Horovod: write logs on worker 0.
+        verbose = 1 if hvd.rank() == 0 else 0
+        model.compile(optimizer=my_adam,loss='mean_squared_error',metrics=[coeff_determination],experimental_run_tf_function=False)    
+    else:
+        model.compile(optimizer=my_adam,loss='mean_squared_error',metrics=[coeff_determination])
+        checkpoint = ModelCheckpoint(weights_filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
+        callbacks_list.append(checkpoint)
+
     model.summary()
-
     num_epochs = num_epochs_space
-    
 
     # fit network
     if train_mode:
-        train_history = model.fit(x=zero_pad_train, y=zero_pad_train,epochs=num_epochs, callbacks=callbacks_list, batch_size=batchsize_space,\
+
+        if hvd_mode:
+            train_history = model.fit(x=zero_pad_train, y=zero_pad_train, callbacks=callbacks_list, batch_size=batchsize_space,\
                                  validation_data=(zero_pad_valid,zero_pad_valid))
 
-        model.load_weights(weights_filepath)
+            if hvd.rank() == 0:
+                model.load_weights(weights_filepath)
 
-        idx_train = sorted(range(len(idx_train)), key=lambda k: idx_train[k])
-        idx_test = sorted(range(len(idx_test)), key=lambda k: idx_test[k])
+                idx_train = sorted(range(len(idx_train)), key=lambda k: idx_train[k])
+                idx_test = sorted(range(len(idx_test)), key=lambda k: idx_test[k])
 
-        # Rejoin train and valid
-        zero_pad_train = np.concatenate((zero_pad_train,zero_pad_valid),axis=0)
+                # Rejoin train and valid
+                zero_pad_train = np.concatenate((zero_pad_train,zero_pad_valid),axis=0)
+                zero_pad_train = zero_pad_train[idx_train]
+                zero_pad_test = zero_pad_test[idx_test]
 
-        zero_pad_train = zero_pad_train[idx_train]
-        zero_pad_test = zero_pad_test[idx_test]
-        
-        for time in range(0,10):
-            recoded = model.predict(zero_pad_test[time:time+1,:,:,:])
-            true = preproc.inverse_transform(zero_pad_test[time:time+1,448-404:448+404,448-391:448+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
-            recoded = preproc.inverse_transform(recoded[:,448-404:448+404,448-391:448+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
+                # Call to save latent space representation
+                save_latent_space(model,encoder,zero_pad_train,zero_pad_test,preproc,dim_1, dim_2)            
 
-            fig, ax = plt.subplots(nrows=1,ncols=2,figsize=(6,6))
-            cs1 = ax[0].imshow(true,label='input',vmin=-20,vmax=40)
-            cs2 = ax[1].imshow(recoded,label='decoded',vmin=-20,vmax=40)
+        else:
+            train_history = model.fit(x=zero_pad_train, y=zero_pad_train,epochs=num_epochs, callbacks=callbacks_list, batch_size=batchsize_space,\
+                                 validation_data=(zero_pad_valid,zero_pad_valid))
 
-            for i in range(2):
-                ax[i].set_xlabel('x')
-                ax[i].set_ylabel('y')
+            model.load_weights(weights_filepath)
 
-            fig.colorbar(cs1,ax=ax[0],fraction=0.046, pad=0.04)
-            fig.colorbar(cs2,ax=ax[1],fraction=0.046, pad=0.04)
-            ax[0].set_title(r'True $q_1$')
-            ax[1].set_title(r'Reconstructed $q_1$')
-            plt.subplots_adjust(wspace=0.5,hspace=-0.3)
-            plt.tight_layout()
-            plt.savefig('../CAE_Training/Reconstructions/Test_Recon_'+str(time)+'.png')
+            idx_train = sorted(range(len(idx_train)), key=lambda k: idx_train[k])
+            idx_test = sorted(range(len(idx_test)), key=lambda k: idx_test[k])
+
+            # Rejoin train and valid
+            zero_pad_train = np.concatenate((zero_pad_train,zero_pad_valid),axis=0)
+            zero_pad_train = zero_pad_train[idx_train]
+            zero_pad_test = zero_pad_test[idx_test]
+
+            # Call to save latent space representation
+            save_latent_space(model,encoder,zero_pad_train,zero_pad_test,preproc,dim_1, dim_2)
+            
+    return model
+
+def save_latent_space(model,encoder,zero_pad_train,zero_pad_test,preproc,dim_1, dim_2):
+    
+    for time in range(0,10):
+        recoded = model.predict(zero_pad_test[time:time+1,:,:,:])
+        true = preproc.inverse_transform(zero_pad_test[time:time+1,448-404:448+404,448-391:448+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
+        recoded = preproc.inverse_transform(recoded[:,448-404:448+404,448-391:448+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
+
+        fig, ax = plt.subplots(nrows=1,ncols=2,figsize=(6,6))
+        cs1 = ax[0].imshow(true,label='input',vmin=-20,vmax=40)
+        cs2 = ax[1].imshow(recoded,label='decoded',vmin=-20,vmax=40)
+
+        for i in range(2):
+            ax[i].set_xlabel('x')
+            ax[i].set_ylabel('y')
+
+        fig.colorbar(cs1,ax=ax[0],fraction=0.046, pad=0.04)
+        fig.colorbar(cs2,ax=ax[1],fraction=0.046, pad=0.04)
+        ax[0].set_title(r'True $q_1$')
+        ax[1].set_title(r'Reconstructed $q_1$')
+        plt.subplots_adjust(wspace=0.5,hspace=-0.3)
+        plt.tight_layout()
+        plt.savefig('../CAE_Training/Reconstructions/Test_Recon_'+str(time)+'.png')
 
 
         # Encode the training data to generate time-series information
@@ -229,9 +291,6 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
         encoded_test = np.asarray(encoded_list)
         np.save("../Latent_Space/CAE_Coefficients_Test_"+str(geo_data)+".npy",encoded_test)
 
-    model.load_weights(weights_filepath)
-
-    return model
 
 #-------------------------------------------------------------------------------------------------
 # Load prepared coefficients

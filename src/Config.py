@@ -34,6 +34,9 @@ num_latent_space = 8
 # Field visualization
 field_viz = False
 
+# Horovod
+use_hvd = False
+
 
 if __name__ == '__main__':
     pass
