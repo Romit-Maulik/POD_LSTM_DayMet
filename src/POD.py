@@ -1,7 +1,7 @@
 from Config import *
 import numpy as np
 from numpy import linalg as LA
-#from statsmodels.nonparametric.smoothers_lowess import lowess
+from statsmodels.nonparametric.smoothers_lowess import lowess
 from scipy.ndimage import gaussian_filter
 
 

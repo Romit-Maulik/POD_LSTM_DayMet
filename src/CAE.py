@@ -19,7 +19,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 import matplotlib.pyplot as plt
-#from statsmodels.nonparametric.smoothers_lowess import lowess
+from statsmodels.nonparametric.smoothers_lowess import lowess
 import horovod.tensorflow.keras as hvd
 
 #-------------------------------------------------------------------------------------------------
@@ -57,13 +57,19 @@ def load_snapshots_cae():
     data_train = data_train.reshape(num_train,dim_1*dim_2)
     data_test = data_test.reshape(num_test,dim_1*dim_2)
 
-    preproc = Pipeline([('minmaxscaler', MinMaxScaler())]) #Pipeline([('stdscaler', StandardScaler()),('minmax', MinMaxScaler(feature_range=(-1, 1)))])
+    preproc = MinMaxScaler()
+    # preproc = Pipeline([('minmaxscaler', MinMaxScaler())]) #Pipeline([('stdscaler', StandardScaler()),('minmax', MinMaxScaler(feature_range=(-1, 1)))])
     
     data_train = preproc.fit_transform(data_train)
     data_train = data_train.reshape(num_train,dim_1,dim_2,1) 
 
     data_test = preproc.transform(data_test)
     data_test = data_test.reshape(num_test,dim_1,dim_2,1)
+
+    # Save CAE scaler
+    from sklearn.externals import joblib
+    scaler_filename = "cae_scaler.save"
+    joblib.dump(preproc, scaler_filename) 
 
     # Pad zeros
     zero_pad_train = np.zeros(shape=(num_train,1024,1024,1))
@@ -139,7 +145,7 @@ def cae_model():
     ae_outputs = decoder(encoder(encoder_inputs)) 
     model = Model(inputs=encoder_inputs,outputs=ae_outputs,name='CAE')
 
-    return model, encoder
+    return model, encoder, decoder
 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
@@ -153,8 +159,8 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     zero_pad_train = zero_pad_train[idx_train]
 
     # Just keeping a few aside for validation - due to memory limitations
-    zero_pad_valid = np.copy(zero_pad_train[-5:])
-    zero_pad_train = np.copy(zero_pad_train[:-5])
+    zero_pad_valid = zero_pad_train[-5:]
+    zero_pad_train = zero_pad_train[:-5]
     
     idx_test = np.arange(np.shape(zero_pad_test)[0])
     np.random.shuffle(idx_test)
@@ -165,7 +171,7 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     lrate = 0.001
 
     # Get CAE model
-    model,encoder = cae_model()
+    model,encoder,_ = cae_model()
 
     # design network
     my_adam = optimizers.Adam(lr=lrate, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
@@ -254,10 +260,10 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
 
 def save_latent_space(model,encoder,zero_pad_train,zero_pad_test,preproc,dim_1, dim_2):
     
-    for time in range(0,10):
+    for time in range(0,300,30):
         recoded = model.predict(zero_pad_test[time:time+1,:,:,:])
-        true = preproc.inverse_transform(zero_pad_test[time:time+1,448-404:448+404,448-391:448+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
-        recoded = preproc.inverse_transform(recoded[:,448-404:448+404,448-391:448+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
+        true = preproc.inverse_transform(zero_pad_test[time:time+1,512-404:512+404,512-391:512+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
+        recoded = preproc.inverse_transform(recoded[:,512-404:512+404,512-391:512+391,:].reshape(1,dim_1*dim_2)).reshape(dim_1,dim_2)
 
         fig, ax = plt.subplots(nrows=1,ncols=2,figsize=(6,6))
         cs1 = ax[0].imshow(true,label='input',vmin=-20,vmax=40)

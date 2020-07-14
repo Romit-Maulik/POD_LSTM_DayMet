@@ -78,6 +78,7 @@ from POD import generate_pod_bases, plot_pod_modes, load_snapshots_pod, load_coe
 from CAE import generate_cae, load_coefficients_cae, load_snapshots_cae
 from ML_Time import lstm_for_dynamics, evaluate_rom_deployment_lstm
 from Analyses import visualize_predictions_pod, analyze_predictions_pod
+from Analyses import visualize_predictions_cae, analyze_predictions_cae
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -118,8 +119,8 @@ if __name__ == "__main__":
 
             if time_train_mode:
                 # Train LSTM
-                cf = np.transpose(preproc_input.fit_transform(np.transpose(cf)))
-                cf_v = np.transpose(preproc_input.transform(np.transpose(cf_v)))
+                cf = preproc_input.fit_transform(np.transpose(cf))
+                cf_v = preproc_input.transform(np.transpose(cf_v)) # Times are rows
 
                 # LSTM network
                 model = lstm_for_dynamics(cf,cf_v,num_epochs_time,window_len,time_train_mode)
@@ -131,19 +132,18 @@ if __name__ == "__main__":
                 zero_pad_train, zero_pad_test, preproc, dim_1, dim_2 = load_snapshots_cae() 
                 # Train CAE
                 generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, space_train_mode,args.use_hvd)
-                cf, cf_t = load_coefficients_cae()
             else:
                 cf, cf_t = load_coefficients_cae()
 
             # Train LSTM
             if time_train_mode:
                 num_points = np.shape(cf)[0]
-                
+               
                 cf_v = cf[int(0.9*num_points):]
                 cf = cf[:int(0.9*num_points)]
                 
-                cf = np.transpose(preproc_input.fit_transform(np.transpose(cf)))
-                cf_v = np.transpose(preproc_input.transform(np.transpose(cf_v)))
+                cf = preproc_input.fit_transform(cf)
+                cf_v = preproc_input.transform(cf_v)
 
                 # LSTM network
                 model = lstm_for_dynamics(cf,cf_v,num_epochs_time,window_len,time_train_mode)
@@ -154,45 +154,45 @@ if __name__ == "__main__":
             # Load data for testing
             phi, cf, cf_v, cf_t, smean = load_coefficients_pod()
 
-            cf = np.transpose(preproc_input.fit_transform(np.transpose(cf)))
-            cf_t = np.transpose(preproc_input.transform(np.transpose(cf_t)))
-            cf_v = np.transpose(preproc_input.transform(np.transpose(cf_v)))
+            cf = preproc_input.fit_transform(np.transpose(cf))
+            cf_t = preproc_input.transform(np.transpose(cf_t))
+            cf_v = preproc_input.transform(np.transpose(cf_v))
 
             # LSTM network on training data
             model = lstm_for_dynamics(cf,cf_v,num_epochs_time,window_len,train_mode)
 
-            tsteps = np.shape(cf)[1]
+            tsteps = np.shape(cf)[0]
             _, lstm = evaluate_rom_deployment_lstm(model,cf,tsteps,num_modes,window_len)
 
-            tsteps = np.shape(cf_v)[1]
+            tsteps = np.shape(cf_v)[0]
             _, lstm_v = evaluate_rom_deployment_lstm(model,cf_v,tsteps,num_modes,window_len)
 
-            tsteps = np.shape(cf_t)[1]
+            tsteps = np.shape(cf_t)[0]
             _, lstm_t = evaluate_rom_deployment_lstm(model,cf_t,tsteps,num_modes,window_len)
 
             # Metrics
-            print('MAE metrics on train data:',mean_absolute_error(cf[:,:-window_len],lstm[:,:-window_len]))
-            print('MAE metrics on valid data:',mean_absolute_error(cf_v[:,:-window_len],lstm_v[:,:-window_len]))
-            print('MAE metrics on test data:',mean_absolute_error(cf_t[:,:-window_len],lstm_t[:,:-window_len]))
+            print('MAE metrics on train data:',mean_absolute_error(cf[:-window_len],lstm[:-window_len]))
+            print('MAE metrics on valid data:',mean_absolute_error(cf_v[:-window_len],lstm_v[:-window_len]))
+            print('MAE metrics on test data:',mean_absolute_error(cf_t[:-window_len],lstm_t[:-window_len]))
 
-            print('R2 metrics on train data:',r2_score(cf[:,:-window_len],lstm[:,:-window_len]))
-            print('R2 metrics on valid data:',r2_score(cf_v[:,:-window_len],lstm_v[:,:-window_len]))
-            print('R2 metrics on test data:',r2_score(cf_t[:,:-window_len],lstm_t[:,:-window_len]))
+            print('R2 metrics on train data:',r2_score(cf[:-window_len],lstm[:-window_len]))
+            print('R2 metrics on valid data:',r2_score(cf_v[:-window_len],lstm_v[:-window_len]))
+            print('R2 metrics on test data:',r2_score(cf_t[:-window_len],lstm_t[:-window_len]))
 
             # Rescale and save
             # Train
-            cf = np.transpose(preproc_input.inverse_transform(np.transpose(cf)))
-            lstm = np.transpose(preproc_input.inverse_transform(np.transpose(lstm)))
+            cf = np.transpose(preproc_input.inverse_transform(cf))
+            lstm = np.transpose(preproc_input.inverse_transform(lstm))
             np.save('../Latent_Space/POD_Prediction_train_'+str(geo_data)+'.npy',lstm)
 
             # Valid
-            cf_v = np.transpose(preproc_input.inverse_transform(np.transpose(cf_v)))
-            lstm_v = np.transpose(preproc_input.inverse_transform(np.transpose(lstm_v)))
+            cf_v = np.transpose(preproc_input.inverse_transform(cf_v))
+            lstm_v = np.transpose(preproc_input.inverse_transform(lstm_v))
             np.save('../Latent_Space/POD_Prediction_valid_'+str(geo_data)+'.npy',lstm_v)
 
             # Test
-            cf_t = np.transpose(preproc_input.inverse_transform(np.transpose(cf_t)))
-            lstm_t = np.transpose(preproc_input.inverse_transform(np.transpose(lstm_t)))
+            cf_t = np.transpose(preproc_input.inverse_transform(cf_t))
+            lstm_t = np.transpose(preproc_input.inverse_transform(lstm_t))
             np.save('../Latent_Space/POD_Prediction_test_'+str(geo_data)+'.npy',lstm_t)
 
             # # Visualize train
@@ -202,8 +202,57 @@ if __name__ == "__main__":
             
             # Visualize and analyze test
             visualize_predictions_pod(lstm_t,cf_t,smean,phi,'test')
-            analyze_predictions_pod(lstm_t,cf_t,smean,phi,'test')
+            # analyze_predictions_pod(lstm_t,cf_t,smean,phi,'test')
 
         elif compression == 'cae':
 
-            print('Still working on it')
+            cf, cf_t = load_coefficients_cae()
+            num_points = np.shape(cf)[0]
+            # LSTM network
+            cf_v = cf[int(0.9*num_points):]
+            cf = cf[:int(0.9*num_points)]
+            
+            cf = preproc_input.fit_transform(cf)
+            cf_v = preproc_input.transform(cf_v)
+            cf_t = preproc_input.transform(cf_t)
+            
+            # LSTM network on training data
+            model = lstm_for_dynamics(cf,cf_v,num_epochs_time,window_len,train_mode)
+
+            tsteps = np.shape(cf)[0]
+            _, lstm = evaluate_rom_deployment_lstm(model,cf,tsteps,num_modes,window_len)
+
+            tsteps = np.shape(cf_v)[0]
+            _, lstm_v = evaluate_rom_deployment_lstm(model,cf_v,tsteps,num_modes,window_len)
+
+            tsteps = np.shape(cf_t)[0]
+            _, lstm_t = evaluate_rom_deployment_lstm(model,cf_t,tsteps,num_modes,window_len)
+
+            # Metrics
+            print('MAE metrics on train data:',mean_absolute_error(cf[:-window_len],lstm[:-window_len]))
+            print('MAE metrics on valid data:',mean_absolute_error(cf_v[:-window_len],lstm_v[:-window_len]))
+            print('MAE metrics on test data:',mean_absolute_error(cf_t[:-window_len],lstm_t[:-window_len]))
+
+            print('R2 metrics on train data:',r2_score(cf[:-window_len],lstm[:-window_len]))
+            print('R2 metrics on valid data:',r2_score(cf_v[:-window_len],lstm_v[:-window_len]))
+            print('R2 metrics on test data:',r2_score(cf_t[:-window_len],lstm_t[:-window_len]))
+
+            # Rescale and save
+            # Train
+            cf = np.transpose(preproc_input.inverse_transform(cf))
+            lstm = np.transpose(preproc_input.inverse_transform(lstm))
+            np.save('../Latent_Space/CAE_Prediction_train_'+str(geo_data)+'.npy',lstm)
+
+            # Valid
+            cf_v = np.transpose(preproc_input.inverse_transform(cf_v))
+            lstm_v = np.transpose(preproc_input.inverse_transform(lstm_v))
+            np.save('../Latent_Space/CAE_Prediction_valid_'+str(geo_data)+'.npy',lstm_v)
+
+            # Test
+            cf_t = np.transpose(preproc_input.inverse_transform(cf_t))
+            lstm_t = np.transpose(preproc_input.inverse_transform(lstm_t))
+            np.save('../Latent_Space/CAE_Prediction_test_'+str(geo_data)+'.npy',lstm_t)
+
+            # Visualize and analyze test
+            visualize_predictions_cae(lstm_t,cf_t,'test')
+            analyze_predictions_cae(lstm_t,cf_t,'test')

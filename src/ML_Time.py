@@ -13,14 +13,12 @@ from tensorflow.keras.models import load_model, Sequential, Model
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
 def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
-    features = np.transpose(cf_trunc)
-    features_v = np.transpose(cf_trunc_v) # Validation
-    states = np.copy(features[:,:]) #Rows are time, Columns are state values
-    states_v = np.copy(features_v[:,:]) #Rows are time, Columns are state values
+    states = np.copy(cf_trunc[:,:]) #Rows are time, Columns are state values
+    states_v = np.copy(cf_trunc_v[:,:]) #Rows are time, Columns are state values
 
     # Need to make batches of 10 input sequences and 1 output
     # Training
-    total_size = np.shape(features)[0]-2*seq_num + 1
+    total_size = np.shape(states)[0]-2*seq_num + 1
     input_seq = np.zeros(shape=(total_size,seq_num,np.shape(states)[1]))
     output_seq = np.zeros(shape=(total_size,seq_num,np.shape(states)[1]))
 
@@ -28,20 +26,20 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
         input_seq[t,:,:] = states[None,t:t+seq_num,:]
         output_seq[t,:,:] = states[None,t+seq_num:t+2*seq_num,:]
 
+    idx = np.arange(total_size)
+    np.random.shuffle(idx)
+    
+    input_seq = input_seq[idx,:,:]
+    output_seq = output_seq[idx,:,:]
+
     # Validation
-    total_size = np.shape(features_v)[0]-2*seq_num + 1
+    total_size = np.shape(states_v)[0]-2*seq_num + 1
     input_seq_v = np.zeros(shape=(total_size,seq_num,np.shape(states_v)[1]))
     output_seq_v = np.zeros(shape=(total_size,seq_num,np.shape(states_v)[1]))
 
     for t in range(total_size):
         input_seq_v[t,:,:] = states_v[None,t:t+seq_num,:]
         output_seq_v[t,:,:] = states_v[None,t+seq_num:t+2*seq_num,:]
-
-    idx = np.arange(total_size)
-    np.random.shuffle(idx)
-    
-    input_seq = input_seq[idx,:,:]
-    output_seq = output_seq[idx,:,:]
    
     lstm_inputs = Input(shape=(seq_num, np.shape(states)[1],))
     l1 = Bidirectional(LSTM(50,return_sequences=True))(lstm_inputs)
@@ -52,11 +50,11 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
     model = Model(inputs=lstm_inputs, outputs=op)
 
     # design network
-    my_adam = optimizers.Adam(lr=0.0005, decay=0.0)
+    my_adam = optimizers.Adam(lr=0.001, decay=0.0)
 
     filepath = "../LSTM_Training/"+str(compression)+"_best_weights_"+str(geo_data)+".h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
-    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=20, verbose=1, mode='auto', baseline=None, restore_best_weights=False)
+    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto', baseline=None, restore_best_weights=False)
     callbacks_list = [checkpoint,earlystopping]
     
     # fit network
@@ -85,21 +83,20 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
 #-------------------------------------------------------------------------------------------------
 def evaluate_rom_deployment_lstm(model,dataset,tsteps,num_modes,seq_num):
 
-    # Make the initial condition from the first seq_num columns of the dataset
-    features = np.transpose(dataset)  
-    input_states = np.copy(features)
+    # Make the initial condition from the first seq_num columns of the dataset  
+    input_states = np.copy(dataset)
 
-    state_tracker = np.zeros(shape=(1,tsteps,np.shape(features)[1]),dtype='double')
+    state_tracker = np.zeros(shape=(1,tsteps,np.shape(dataset)[1]),dtype='double')
     state_tracker[0,0:seq_num,:] = input_states[0:seq_num,:]
 
-    total_size = np.shape(features)[0]-seq_num + 1
+    total_size = np.shape(dataset)[0]-seq_num + 1
 
     for t in range(seq_num,total_size,seq_num):
         lstm_input = np.expand_dims(input_states[t-seq_num:t,:],0)
         output_state = model.predict(lstm_input)
         state_tracker[0,t:t+seq_num,:] = output_state[0,:,:]
 
-    return np.transpose(output_state), np.transpose(state_tracker[0,:,:])
+    return output_state, state_tracker[0,:,:]
 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
