@@ -1,7 +1,6 @@
 import argparse
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--geo_data",help="Data sets to use ['tmax', 'prcp']",type=str)
 parser.add_argument("--train_mode",help="Retrain POD/CAE/LSTM?",action='store_true')
 
 parser.add_argument("--comp",help="Compression to use ['pod', 'cae']",type=str)
@@ -25,8 +24,6 @@ args = parser.parse_args()
 import Config
 
 # Dataset
-if args.geo_data is not None:
-    Config.geo_data = args.geo_data
 if args.comp is not None:
     Config.compression = args.comp
 if args.train_mode is not None:
@@ -105,7 +102,6 @@ if __name__ == "__main__":
             tf.config.experimental.set_visible_devices(gpus[hvd.local_rank()], 'GPU')
 
     if train_mode:
-
         if compression == 'pod':
             # Perform POD
             if space_train_mode:
@@ -183,37 +179,35 @@ if __name__ == "__main__":
             # Train
             cf = np.transpose(preproc_input.inverse_transform(cf))
             lstm = np.transpose(preproc_input.inverse_transform(lstm))
-            np.save('../Latent_Space/POD_Prediction_train_'+str(geo_data)+'.npy',lstm)
+            np.save('../Latent_Space/POD_Prediction_train.npy',lstm)
 
             # Valid
             cf_v = np.transpose(preproc_input.inverse_transform(cf_v))
             lstm_v = np.transpose(preproc_input.inverse_transform(lstm_v))
-            np.save('../Latent_Space/POD_Prediction_valid_'+str(geo_data)+'.npy',lstm_v)
+            np.save('../Latent_Space/POD_Prediction_valid.npy',lstm_v)
 
             # Test
             cf_t = np.transpose(preproc_input.inverse_transform(cf_t))
             lstm_t = np.transpose(preproc_input.inverse_transform(lstm_t))
-            np.save('../Latent_Space/POD_Prediction_test_'+str(geo_data)+'.npy',lstm_t)
+            np.save('../Latent_Space/POD_Prediction_test.npy',lstm_t)
 
             # # Visualize train
-            # visualize_predictions(lstm,cf,smean,phi,'train')
+            # visualize_predictions_pod(lstm,cf,smean,phi,'train')
             # # Visualize valid
-            # visualize_predictions(lstm_v,cf_v,smean,phi,'valid')
+            # visualize_predictions_pod(lstm_v,cf_v,smean,phi,'valid')
             
             # Visualize and analyze test
             visualize_predictions_pod(lstm_t,cf_t,smean,phi,'test')
-            # analyze_predictions_pod(lstm_t,cf_t,smean,phi,'test')
+            analyze_predictions_pod(lstm_t,cf_t,smean,phi,'test')
 
         elif compression == 'cae':
 
             cf, cf_t = load_coefficients_cae()
             num_points = np.shape(cf)[0]
-            # LSTM network
+            # Scale
+            cf = preproc_input.fit_transform(cf)
             cf_v = cf[int(0.9*num_points):]
             cf = cf[:int(0.9*num_points)]
-            
-            cf = preproc_input.fit_transform(cf)
-            cf_v = preproc_input.transform(cf_v)
             cf_t = preproc_input.transform(cf_t)
             
             # LSTM network on training data
@@ -241,18 +235,24 @@ if __name__ == "__main__":
             # Train
             cf = np.transpose(preproc_input.inverse_transform(cf))
             lstm = np.transpose(preproc_input.inverse_transform(lstm))
-            np.save('../Latent_Space/CAE_Prediction_train_'+str(geo_data)+'.npy',lstm)
+            np.save('../Latent_Space/CAE_Prediction_train.npy',lstm)
 
             # Valid
             cf_v = np.transpose(preproc_input.inverse_transform(cf_v))
             lstm_v = np.transpose(preproc_input.inverse_transform(lstm_v))
-            np.save('../Latent_Space/CAE_Prediction_valid_'+str(geo_data)+'.npy',lstm_v)
+            np.save('../Latent_Space/CAE_Prediction_valid.npy',lstm_v)
 
             # Test
             cf_t = np.transpose(preproc_input.inverse_transform(cf_t))
             lstm_t = np.transpose(preproc_input.inverse_transform(lstm_t))
-            np.save('../Latent_Space/CAE_Prediction_test_'+str(geo_data)+'.npy',lstm_t)
+            np.save('../Latent_Space/CAE_Prediction_test.npy',lstm_t)
+
+            # Visualize and analyze train
+            # visualize_predictions_cae(lstm,cf,'train')
+
+            # Visualize and analyze validation
+            # visualize_predictions_cae(lstm_v,cf_v,'valid')
 
             # Visualize and analyze test
             visualize_predictions_cae(lstm_t,cf_t,'test')
-            analyze_predictions_cae(lstm_t,cf_t,'test')
+            # analyze_predictions_cae(lstm_t,cf_t,'test')

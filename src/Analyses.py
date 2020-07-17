@@ -33,36 +33,20 @@ def visualize_predictions_pod(cf_pred,cf_true,sm,phi,mode):
     plt.legend()
     plt.title('Forecast ' + mode)
     plt.tight_layout()
-    plt.savefig('../Visualization/'+str(geo_data)+'/POD/Coefficients/Coefficients_'+mode+'_'+str(geo_data)+'.png')
+    plt.savefig('../Visualization/POD/Coefficients/Coefficients_'+mode+'.png')
     plt.close()
 
     if field_viz:
 
-        if geo_data == 'tmax':
-            
-            if mode == 'train':
-                snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
-            elif mode == 'valid':
-                snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
-            elif mode == 'test':
-                snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
-        
-        elif geo_data == 'prcp':
-            
-            data_total = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)
-            num_snapshots = np.shape(data_total)[0]
-            num_train = int(num_snapshots*0.7)
-            num_valid = int(num_snapshots*0.15)          
-
-            if mode == 'train':
-                snapshots = data_total[0:num_train] 
-            elif mode == 'valid':
-                snapshots = data_total[num_train:num_train+num_valid]
-            elif mode == 'test':
-                snapshots = data_total[num_train+num_valid:]    
+        if mode == 'train':
+            snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+        elif mode == 'valid':
+            snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+        elif mode == 'test':
+            snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[15*365:] # 2016-   
 
    
-        mask = np.load('../Data/mask_'+str(geo_data)+'.npy')
+        mask = np.load('../Data/mask.npy')
         dim_0 = np.shape(snapshots)[0]
         dim_1 = np.shape(snapshots)[1]
         dim_2 = np.shape(snapshots)[2]
@@ -99,7 +83,7 @@ def visualize_predictions_pod(cf_pred,cf_true,sm,phi,mode):
             fig.colorbar(cx, ax = ax[1],fraction=0.046, pad=0.04)
             fig.colorbar(cx, ax = ax[2],fraction=0.046, pad=0.04)
             plt.tight_layout()
-            plt.savefig('../Visualization/'+str(geo_data)+'/POD/Contours/Plot_'+mode+'_'+"{0:0>4}".format(pnum)+'.png')
+            plt.savefig('../Visualization/POD/Contours/Plot_'+mode+'_'+"{0:0>4}".format(pnum)+'.png')
             pnum = pnum + 1
             plt.close()
 
@@ -110,31 +94,15 @@ def visualize_predictions_pod(cf_pred,cf_true,sm,phi,mode):
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
 def analyze_predictions_pod(cf_pred,cf_true,sm,phi,mode):
+      
+    if mode == 'train':
+        snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+    elif mode == 'valid':
+        snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+    elif mode == 'test':
+        snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[15*365:] # 2016-   
 
-    if geo_data == 'tmax':
-        
-        if mode == 'train':
-            snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
-        elif mode == 'valid':
-            snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
-        elif mode == 'test':
-            snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
-    
-    elif geo_data == 'prcp':
-        
-        data_total = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)
-        num_snapshots = np.shape(data_total)[0]
-        num_train = int(num_snapshots*0.7)
-        num_valid = int(num_snapshots*0.15)          
-
-        if mode == 'train':
-            snapshots = data_total[0:num_train] 
-        elif mode == 'valid':
-            snapshots = data_total[num_train:num_train+num_valid]
-        elif mode == 'test':
-            snapshots = data_total[num_train+num_valid:]    
-
-    mask = np.load('../Data/mask_'+str(geo_data)+'.npy')
+    mask = np.load('../Data/mask.npy')
     dim_0 = np.shape(snapshots)[0]
     dim_1 = np.shape(snapshots)[1]
     dim_2 = np.shape(snapshots)[2]
@@ -212,7 +180,7 @@ def analyze_predictions_pod(cf_pred,cf_true,sm,phi,mode):
                     plt.hist(pred_arr,bins=np.arange(min(true_arr), max(true_arr) + binwidth, binwidth),label='Predicted',alpha=0.5)
                     plt.legend()
                     plt.xlim((-50,60))
-                    plt.savefig('../Analyses/'+str(geo_data)+'/POD/pdfs/'+region_name+'_'+str(week)+'.png')
+                    plt.savefig('../Analyses/POD/pdfs/'+region_name+'_'+str(week)+'.png')
                     plt.close()
                 
                 except:
@@ -247,7 +215,7 @@ def analyze_predictions_pod(cf_pred,cf_true,sm,phi,mode):
             plt.plot(np.arange(len(bias_vals)),bias_vals,'o')
             plt.xlabel('Week')
             plt.ylabel('Bias')
-            plt.savefig('../Analyses/'+str(geo_data)+'/POD/biases/Bias_'+region_name+'.png')
+            plt.savefig('../Analyses/POD/biases/Bias_'+region_name+'.png')
             plt.close()
 
             plt.figure()
@@ -256,7 +224,7 @@ def analyze_predictions_pod(cf_pred,cf_true,sm,phi,mode):
             plt.xlabel('Week')
             plt.ylabel('Weekly average forecasts')
             plt.legend()
-            plt.savefig('../Analyses/'+str(geo_data)+'/POD/biases/Forecasts_'+region_name+'.png')
+            plt.savefig('../Analyses/POD/biases/Forecasts_'+region_name+'.png')
             plt.close()
 
 
@@ -288,33 +256,17 @@ def visualize_predictions_cae(cf_pred,cf_true,mode):
     plt.legend()
     plt.title('Forecast ' + mode)
     plt.tight_layout()
-    plt.savefig('../Visualization/'+str(geo_data)+'/CAE/Coefficients/Coefficients_'+mode+'_'+str(geo_data)+'.png')
+    plt.savefig('../Visualization/CAE/Coefficients/Coefficients_'+mode+'.png')
     plt.close()
 
     if field_viz:
 
-        if geo_data == 'tmax':
-            
-            if mode == 'train':
-                snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
-            elif mode == 'valid':
-                snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
-            elif mode == 'test':
-                snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
-        
-        elif geo_data == 'prcp':
-            
-            data_total = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)
-            num_snapshots = np.shape(data_total)[0]
-            num_train = int(num_snapshots*0.7)
-            num_valid = int(num_snapshots*0.15)          
-
-            if mode == 'train':
-                snapshots = data_total[0:num_train] 
-            elif mode == 'valid':
-                snapshots = data_total[num_train:num_train+num_valid]
-            elif mode == 'test':
-                snapshots = data_total[num_train+num_valid:]
+        if mode == 'train':
+            snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+        elif mode == 'valid':
+            snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+        elif mode == 'test':
+            snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[15*365:] # 2016-
 
 
         # loading the CAE preprocessor
@@ -323,7 +275,7 @@ def visualize_predictions_cae(cf_pred,cf_true,mode):
         preproc = joblib.load(scaler_filename) 
       
         # Load the model
-        weights_filepath = "../CAE_Training/cae_best_weights_"+str(geo_data)+".h5"
+        weights_filepath = "../CAE_Training/cae_best_weights.h5"
         model,_,decoder = cae_model()
         model.load_weights(weights_filepath)
 
@@ -337,7 +289,7 @@ def visualize_predictions_cae(cf_pred,cf_true,mode):
             ax[0].set_title('True')
 
             # Reconstruct from latent space
-            snapshot_pred = K.eval(decoder(cf_true[t:t+1].reshape(1,4,4,1).astype('float32')))
+            snapshot_pred = K.eval(decoder(cf_true[t:t+1].reshape(1,2,2,1).astype('float32')))
             snapshot_pred = snapshot_pred[0,512-404:512+404,512-391:512+391,0]
             snapshot_pred = snapshot_pred.reshape(1,808*782)
             snapshot_pred = preproc.inverse_transform(snapshot_pred)
@@ -347,7 +299,7 @@ def visualize_predictions_cae(cf_pred,cf_true,mode):
             ax[1].set_title('Reconstructed')
 
             # Reconstruct from latent space
-            snapshot_pred = K.eval(decoder(cf_pred[t:t+1].reshape(1,4,4,1).astype('float32')))
+            snapshot_pred = K.eval(decoder(cf_pred[t:t+1].reshape(1,2,2,1).astype('float32')))
             snapshot_pred = snapshot_pred[0,512-404:512+404,512-391:512+391,0]
             snapshot_pred = snapshot_pred.reshape(1,808*782)
             snapshot_pred = preproc.inverse_transform(snapshot_pred)
@@ -360,7 +312,7 @@ def visualize_predictions_cae(cf_pred,cf_true,mode):
             fig.colorbar(cx, ax = ax[1],fraction=0.046, pad=0.04)
             fig.colorbar(cx, ax = ax[2],fraction=0.046, pad=0.04)
             plt.tight_layout()
-            plt.savefig('../Visualization/'+str(geo_data)+'/CAE/Contours/Plot_'+mode+'_'+"{0:0>4}".format(pnum)+'.png')
+            plt.savefig('../Visualization/CAE/Contours/Plot_'+mode+'_'+"{0:0>4}".format(pnum)+'.png')
             pnum = pnum + 1
             plt.close()
 
@@ -370,29 +322,13 @@ def visualize_predictions_cae(cf_pred,cf_true,mode):
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
 def analyze_predictions_cae(cf_pred,cf_true,mode):
-
-    if geo_data == 'tmax':
         
-        if mode == 'train':
-            snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
-        elif mode == 'valid':
-            snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
-        elif mode == 'test':
-            snapshots = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)[15*365:] # 2016-
-    
-    elif geo_data == 'prcp':
-        
-        data_total = np.load('../Data/Daymet_total_'+str(geo_data)+'.npy',allow_pickle=True)
-        num_snapshots = np.shape(data_total)[0]
-        num_train = int(num_snapshots*0.7)
-        num_valid = int(num_snapshots*0.15)          
-
-        if mode == 'train':
-            snapshots = data_total[0:num_train] 
-        elif mode == 'valid':
-            snapshots = data_total[num_train:num_train+num_valid]
-        elif mode == 'test':
-            snapshots = data_total[num_train+num_valid:]    
+    if mode == 'train':
+        snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[0*365:11*365] # 2000-2010
+    elif mode == 'valid':
+        snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[11*365:15*365] # 2011-2015
+    elif mode == 'test':
+        snapshots = np.load('../Data/Daymet_total_tmax.npy',allow_pickle=True)[15*365:] # 2016-  
 
     # loading the CAE preprocessor
     from sklearn.externals import joblib
@@ -400,7 +336,7 @@ def analyze_predictions_cae(cf_pred,cf_true,mode):
     preproc = joblib.load(scaler_filename) 
     
     # Load the model
-    weights_filepath = "../CAE_Training/cae_best_weights_"+str(geo_data)+".h5"
+    weights_filepath = "../CAE_Training/cae_best_weights.h5"
     model,_,decoder = cae_model()
     model.load_weights(weights_filepath)
 
@@ -431,7 +367,7 @@ def analyze_predictions_cae(cf_pred,cf_true,mode):
             dec_data_list = []
             for i in range(np.shape(snapshots)[0]):
                 # Reconstruct from latent space
-                snapshot_pred = K.eval(decoder(cf_true[i:i+1].reshape(1,4,4,1).astype('float32')))
+                snapshot_pred = K.eval(decoder(cf_true[i:i+1].reshape(1,2,2,1).astype('float32')))
                 snapshot_pred = snapshot_pred[0,512-404:512+404,512-391:512+391,0]
                 snapshot_pred = snapshot_pred.reshape(1,808*782)
                 snapshot_pred = preproc.inverse_transform(snapshot_pred)
@@ -446,7 +382,7 @@ def analyze_predictions_cae(cf_pred,cf_true,mode):
             pred_data_list = []
             for i in range(np.shape(snapshots)[0]):
                 # Reconstruct from latent space
-                snapshot_pred = K.eval(decoder(cf_pred[i:i+1].reshape(1,4,4,1).astype('float32')))
+                snapshot_pred = K.eval(decoder(cf_pred[i:i+1].reshape(1,2,2,1).astype('float32')))
                 snapshot_pred = snapshot_pred[0,512-404:512+404,512-391:512+391,0]
                 snapshot_pred = snapshot_pred.reshape(1,808*782)
                 snapshot_pred = preproc.inverse_transform(snapshot_pred)
@@ -473,14 +409,13 @@ def analyze_predictions_cae(cf_pred,cf_true,mode):
                         pred_arr = np.append(pred_arr,pred_data[day])
 
                 try:
-    
                     plt.figure(figsize=(6,6))
                     plt.hist(true_arr,bins=np.arange(min(true_arr), max(true_arr) + binwidth, binwidth),label='True',alpha = 0.5)
-                    plt.hist(dec_arr,bins=np.arange(min(true_arr), max(true_arr) + binwidth, binwidth),label='Projected',alpha=0.5)
+                    plt.hist(dec_arr,bins=np.arange(min(true_arr), max(true_arr) + binwidth, binwidth),label='Reconstructed',alpha=0.5)
                     plt.hist(pred_arr,bins=np.arange(min(true_arr), max(true_arr) + binwidth, binwidth),label='Predicted',alpha=0.5)
                     plt.legend()
                     plt.xlim((-50,60))
-                    plt.savefig('../Analyses/'+str(geo_data)+'/POD/pdfs/'+region_name+'_'+str(week)+'.png')
+                    plt.savefig('../Analyses/CAE/pdfs/'+region_name+'_'+str(week)+'.png')
                     plt.close()
                 
                 except:
@@ -515,7 +450,7 @@ def analyze_predictions_cae(cf_pred,cf_true,mode):
             plt.plot(np.arange(len(bias_vals)),bias_vals,'o')
             plt.xlabel('Week')
             plt.ylabel('Bias')
-            plt.savefig('../Analyses/'+str(geo_data)+'/CAE/biases/Bias_'+region_name+'.png')
+            plt.savefig('../Analyses/CAE/biases/Bias_'+region_name+'.png')
             plt.close()
 
             plt.figure()
@@ -524,7 +459,7 @@ def analyze_predictions_cae(cf_pred,cf_true,mode):
             plt.xlabel('Week')
             plt.ylabel('Weekly average forecasts')
             plt.legend()
-            plt.savefig('../Analyses/'+str(geo_data)+'/CAE/biases/Forecasts_'+region_name+'.png')
+            plt.savefig('../Analyses/CAE/biases/Forecasts_'+region_name+'.png')
             plt.close()
 
 #-------------------------------------------------------------------------------------------------

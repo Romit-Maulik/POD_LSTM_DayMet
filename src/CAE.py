@@ -29,24 +29,12 @@ import horovod.tensorflow.keras as hvd
 #-------------------------------------------------------------------------------------------------
 def load_snapshots_cae():
     
-    if geo_data == 'tmax':
-        fname = '../Data/Daymet_total_tmax.npy'
+    fname = '../Data/Daymet_total_tmax.npy'
 
-        data_total = np.load(fname)
-        data_train = data_total[0*365:11*365] # 2000-2010
-        data_valid = data_total[11*365:15*365] # 2011-2014
-        data_test = data_total[15*365:] # 2016
-    
-    elif geo_data == 'prcp': # Some data missing in between
-        fname = '../Data/Daymet_total_prcp.npy'
-
-        data_total = np.load(fname)
-        num_snapshots = np.shape(data_total)[0]
-        num_train = int(num_snapshots*0.85)
-        num_test = int(num_snapshots*0.15)
-
-        data_train = data_total[0:num_train] 
-        data_test = data_total[num_train:]
+    data_total = np.load(fname)
+    data_train = data_total[0*365:11*365] # 2000-2010
+    data_valid = data_total[11*365:15*365] # 2011-2014
+    data_test = data_total[15*365:] # 2016
 
     num_train = np.shape(data_train)[0]
     num_test = np.shape(data_test)[0]
@@ -97,24 +85,30 @@ def cae_model():
     x = Conv2D(15,kernel_size=(3,3),activation='relu',padding='same')(enc_l4)
     enc_l5 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
-    x = Conv2D(10,kernel_size=(3,3),activation=None,padding='same')(enc_l5)
+    x = Conv2D(10,kernel_size=(3,3),activation='relu',padding='same')(enc_l5)
     enc_l6 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
-    x = Conv2D(5,kernel_size=(3,3),activation=None,padding='same')(enc_l6)
+    x = Conv2D(5,kernel_size=(3,3),activation='relu',padding='same')(enc_l6)
     enc_l7 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
-    x = Conv2D(3,kernel_size=(3,3),activation=None,padding='same')(enc_l7)
+    x = Conv2D(3,kernel_size=(3,3),activation='relu',padding='same')(enc_l7)
     enc_l8 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
-    x = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(enc_l8)
+    x = Conv2D(2,kernel_size=(3,3),activation='relu',padding='same')(enc_l8)
+    enc_l9 = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
+
+    x = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(enc_l9)
     encoded = MaxPooling2D(pool_size=(2, 2),padding='same')(x)
 
     encoder = Model(inputs=encoder_inputs,outputs=encoded)
 
     ## Decoder
-    decoder_inputs = Input(shape=(4,4,1),name='decoded')
+    decoder_inputs = Input(shape=(2,2,1),name='decoded')
 
     x = Conv2D(1,kernel_size=(3,3),activation=None,padding='same')(decoder_inputs)
+    dec_l0 = UpSampling2D(size=(2, 2))(x)
+
+    x = Conv2D(2,kernel_size=(3,3),activation='relu',padding='same')(dec_l0)
     dec_l1 = UpSampling2D(size=(2, 2))(x)
 
     x = Conv2D(3,kernel_size=(3,3),activation='relu',padding='same')(dec_l1)
@@ -167,7 +161,7 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     zero_pad_test = zero_pad_test[idx_test]
 
     # CNN training stuff
-    weights_filepath = "../CAE_Training/cae_best_weights_"+str(geo_data)+".h5"
+    weights_filepath = "../CAE_Training/cae_best_weights.h5"
     lrate = 0.001
 
     # Get CAE model
@@ -179,7 +173,7 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     if hvd_mode:
         my_adam = hvd.DistributedOptimizer(my_adam)
 
-    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=10, verbose=0, mode='auto', baseline=None, restore_best_weights=False)    
+    earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=20, verbose=0, mode='auto', baseline=None, restore_best_weights=False)    
     callbacks_list = [earlystopping]
 
     if hvd_mode:
@@ -222,8 +216,8 @@ def generate_cae(zero_pad_train, zero_pad_test, preproc, dim_1, dim_2, train_mod
     if train_mode:
 
         if hvd_mode:
-            train_history = model.fit(x=zero_pad_train, y=zero_pad_train, callbacks=callbacks_list, batch_size=batchsize_space,\
-                                 validation_data=(zero_pad_valid,zero_pad_valid))
+            # train_history = model.fit(x=zero_pad_train, y=zero_pad_train, epochs=num_epochs, callbacks=callbacks_list, batch_size=batchsize_space,\
+            #                      validation_data=(zero_pad_valid,zero_pad_valid))
 
             if hvd.rank() == 0:
                 model.load_weights(weights_filepath)
@@ -288,14 +282,14 @@ def save_latent_space(model,encoder,zero_pad_train,zero_pad_test,preproc,dim_1, 
             temp = K.eval(encoder(zero_pad_train[i:i+1].astype('float32')))
             encoded_list.append(temp.flatten())
         encoded_train = np.asarray(encoded_list)
-        np.save("../Latent_Space/CAE_Coefficients_Train_"+str(geo_data)+".npy",encoded_train)
+        np.save("../Latent_Space/CAE_Coefficients_Train.npy",encoded_train)
 
         encoded_list = []
         for i in range(np.shape(zero_pad_test)[0]):
             temp = K.eval(encoder(zero_pad_test[i:i+1].astype('float32')))
             encoded_list.append(temp.flatten())
         encoded_test = np.asarray(encoded_list)
-        np.save("../Latent_Space/CAE_Coefficients_Test_"+str(geo_data)+".npy",encoded_test)
+        np.save("../Latent_Space/CAE_Coefficients_Test.npy",encoded_test)
 
 
 #-------------------------------------------------------------------------------------------------
@@ -303,8 +297,8 @@ def save_latent_space(model,encoder,zero_pad_train,zero_pad_test,preproc,dim_1, 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
 def load_coefficients_cae():
-    cf = np.load('../Latent_Space/CAE_Coefficients_Train_'+str(geo_data)+'.npy')
-    cf_t = np.load('../Latent_Space/CAE_Coefficients_Test_'+str(geo_data)+'.npy')
+    cf = np.load('../Latent_Space/CAE_Coefficients_Train.npy')
+    cf_t = np.load('../Latent_Space/CAE_Coefficients_Test.npy')
 
     # Lowess filtering
     arr_len = np.shape(cf)[0]

@@ -43,16 +43,16 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
    
     lstm_inputs = Input(shape=(seq_num, np.shape(states)[1],))
     l1 = Bidirectional(LSTM(50,return_sequences=True))(lstm_inputs)
-    l1 = Dropout(0.1)(l1,training=False)
+    # l1 = Dropout(0.1)(l1,training=False)
     l1 = Bidirectional(LSTM(50,return_sequences=True))(l1)
-    l1 = Dropout(0.1)(l1,training=False)
+    # l1 = Dropout(0.1)(l1,training=False)
     op = Dense(np.shape(states)[1], activation='linear', name='output')(l1)
     model = Model(inputs=lstm_inputs, outputs=op)
 
     # design network
     my_adam = optimizers.Adam(lr=0.001, decay=0.0)
 
-    filepath = "../LSTM_Training/"+str(compression)+"_best_weights_"+str(geo_data)+".h5"
+    filepath = "../LSTM_Training/"+str(compression)+"_best_weights.h5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min',save_weights_only=True)
     earlystopping = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=1, mode='auto', baseline=None, restore_best_weights=False)
     callbacks_list = [checkpoint,earlystopping]
@@ -69,8 +69,8 @@ def lstm_for_dynamics(cf_trunc,cf_trunc_v,num_epochs,seq_num,train_mode):
                                 callbacks=callbacks_list, \
                                 validation_data=(input_seq_v, output_seq_v))
         
-        np.save('../LSTM_Training/'+str(compression)+'_Train_Loss_'+str(geo_data)+'.npy',train_history.history['loss'])
-        np.save('../LSTM_Training/'+str(compression)+'_Val_Loss_'+str(geo_data)+'.npy',train_history.history['val_loss'])
+        np.save('../LSTM_Training/'+str(compression)+'_Train_Loss.npy',train_history.history['loss'])
+        np.save('../LSTM_Training/'+str(compression)+'_Val_Loss.npy',train_history.history['val_loss'])
 
     model.load_weights(filepath)
 

@@ -12,25 +12,12 @@ from scipy.ndimage import gaussian_filter
 #-------------------------------------------------------------------------------------------------
 def load_snapshots_pod():
 
-    if geo_data == 'tmax':
-        fname = '../Data/Daymet_total_tmax.npy'
+    fname = '../Data/Daymet_total_tmax.npy'
 
-        data_total = np.load(fname)
-        data_train = data_total[0*365:11*365] # 2000-2010
-        data_valid = data_total[11*365:15*365] # 2011-2014
-        data_test = data_total[15*365:] # 2016
-    
-    elif geo_data == 'prcp': # Some data missing in between
-        fname = '../Data/Daymet_total_prcp.npy'
-
-        data_total = np.load(fname)
-        num_snapshots = np.shape(data_total)[0]
-        num_train = int(num_snapshots*0.7)
-        num_valid = int(num_snapshots*0.15)
-
-        data_train = data_total[0:num_train] 
-        data_valid = data_total[num_train:num_train+num_valid]
-        data_test = data_total[num_train+num_valid:] 
+    data_total = np.load(fname)
+    data_train = data_total[0*365:11*365] # 2000-2010
+    data_valid = data_total[11*365:15*365] # 2011-2014
+    data_test = data_total[15*365:] # 2016 
 
     
     for i in range(np.shape(data_train)[0]):
@@ -66,14 +53,14 @@ def load_snapshots_pod():
     data_valid = data_valid[:,mask]
     data_test = data_test[:,mask]
 
-    np.save('../Data/mask'+'_'+str(geo_data),mask)
+    np.save('../Data/mask',mask)
     tmax_mean = np.mean(data_train,axis=0)
 
     data_train = (data_train-tmax_mean)
     data_valid = (data_valid-tmax_mean)
     data_test = (data_test-tmax_mean)
 
-    np.save('../Latent_Space/POD_Snapshot_Mean_'+str(geo_data)+'.npy',tmax_mean)
+    np.save('../Latent_Space/POD_Snapshot_Mean.npy',tmax_mean)
 
     return np.transpose(data_train), np.transpose(data_valid), np.transpose(data_test)
 
@@ -84,11 +71,11 @@ def load_snapshots_pod():
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
 def load_coefficients_pod():
-    phi = np.load('../Latent_Space/POD_Modes_'+str(geo_data)+'.npy')
-    cf = np.load('../Latent_Space/POD_Coeffs_train_'+str(geo_data)+'.npy')
-    cf_v = np.load('../Latent_Space/POD_Coeffs_valid_'+str(geo_data)+'.npy')
-    cf_t = np.load('../Latent_Space/POD_Coeffs_test_'+str(geo_data)+'.npy')
-    smean = np.load('../Latent_Space/POD_Snapshot_Mean_'+str(geo_data)+'.npy')
+    phi = np.load('../Latent_Space/POD_Modes.npy')
+    cf = np.load('../Latent_Space/POD_Coeffs_train.npy')
+    cf_v = np.load('../Latent_Space/POD_Coeffs_valid.npy')
+    cf_t = np.load('../Latent_Space/POD_Coeffs_test.npy')
+    smean = np.load('../Latent_Space/POD_Snapshot_Mean.npy')
 
     # Do truncation
     phi = phi[:,0:num_modes] # Columns are modes
@@ -139,10 +126,10 @@ def generate_pod_bases(snapshot_matrix_train,snapshot_matrix_valid,snapshot_matr
     # Output amount of energy retained
     print('Amount of energy retained:',np.sum(w[:num_modes])/np.sum(w))
 
-    np.save('../Latent_Space/POD_Modes_'+str(geo_data)+'.npy',phi)
-    np.save('../Latent_Space/POD_Coeffs_train_'+str(geo_data)+'.npy',coefficient_matrix)
-    np.save('../Latent_Space/POD_Coeffs_valid_'+str(geo_data)+'.npy',coefficient_matrix_valid)
-    np.save('../Latent_Space/POD_Coeffs_test_'+str(geo_data)+'.npy',coefficient_matrix_test)
+    np.save('../Latent_Space/POD_Modes.npy',phi)
+    np.save('../Latent_Space/POD_Coeffs_train.npy',coefficient_matrix)
+    np.save('../Latent_Space/POD_Coeffs_valid.npy',coefficient_matrix_valid)
+    np.save('../Latent_Space/POD_Coeffs_test.npy',coefficient_matrix_test)
 
     return phi, coefficient_matrix, coefficient_matrix_valid, coefficient_matrix_test
 

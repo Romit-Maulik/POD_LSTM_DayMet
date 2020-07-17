@@ -1,8 +1,4 @@
 # Default configuration of ROM
-
-# Data set we are emulating
-geo_data = 'tmax' # 'tmax', 'prcp'
-
 # Type of compression
 compression = 'pod' # 'pod', 'cae'
 
@@ -28,8 +24,6 @@ batchsize_time = 64 # LSTM
 
 # For POD
 num_modes = 5
-# FOR CAE
-num_latent_space = 8
 
 # Field visualization
 field_viz = False
