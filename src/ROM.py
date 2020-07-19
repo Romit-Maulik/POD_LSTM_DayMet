@@ -82,7 +82,10 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import r2_score, mean_absolute_error
 
 # Scaling for LSTM
-preproc_input = Pipeline([('minmaxscaler', MinMaxScaler())])
+if compression == 'pod':
+    preproc_input = Pipeline([('minmaxscaler', MinMaxScaler())])
+else:
+    preproc_input = Pipeline([('minmaxscaler', StandardScaler())])
 
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
@@ -248,10 +251,10 @@ if __name__ == "__main__":
             np.save('../Latent_Space/CAE_Prediction_test.npy',lstm_t)
 
             # Visualize and analyze train
-            # visualize_predictions_cae(lstm,cf,'train')
+            visualize_predictions_cae(lstm,cf,'train')
 
             # Visualize and analyze validation
-            # visualize_predictions_cae(lstm_v,cf_v,'valid')
+            visualize_predictions_cae(lstm_v,cf_v,'valid')
 
             # Visualize and analyze test
             visualize_predictions_cae(lstm_t,cf_t,'test')
